@@ -1,0 +1,16 @@
+{
+  "name": "retail-website-backend",
+  "version": "1.0.0",
+  "description": "RetailShop E-Commerce backend powered by Oracle Database 23c Free Edition",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "oracledb": "^6.10.0"
+  }
+}

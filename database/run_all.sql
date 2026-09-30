@@ -1,0 +1,10 @@
+SET DEFINE OFF;
+SET SCAN OFF;
+SET FEEDBACK ON;
+ALTER SESSION SET CONTAINER = FREEPDB1;
+@database/schema.sql
+@database/seed.sql
+SELECT COUNT(*) AS total_categories FROM CATEGORIES;
+SELECT COUNT(*) AS total_products FROM PRODUCTS;
+SELECT COUNT(*) AS total_users FROM USERS;
+EXIT;

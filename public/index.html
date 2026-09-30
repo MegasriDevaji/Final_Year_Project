@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RetailShop.com - Online Shopping for Electronics, Apparel, Computers, Books & More</title>
+  <meta name="description" content="Shop online at RetailShop for electronics, computers, clothing, shoes, toys, books, home appliances, and more with free delivery on eligible items.">
+  
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TOP ANNOUNCEMENT BAR -->
+  <div class="top-bar">
+    <span><i class="fa-solid fa-bolt"></i> <strong>RETAILSHOP GREAT GLOBAL SHOPPING FESTIVAL</strong> — Up to 70% Off Electronics, Laptops &amp; Home Essentials!</span>
+  </div>
+
+  <!-- MAIN NAVIGATION HEADER -->
+  <header class="amz-header">
+    <div class="header-main">
+      <!-- RetailShop Logo -->
+      <a href="#" class="brand-logo" onclick="app.resetFilters(); return false;">
+        <span class="logo-text">Retail<span class="logo-dot">Shop</span></span>
+        <span class="logo-prime"><i class="fa-solid fa-check"></i>prime</span>
+      </a>
+
+      <!-- Location Selector -->
+      <div class="header-nav-item nav-location" onclick="app.showToast('Deliver to location updated to Seattle 98101')">
+        <i class="fa-solid fa-location-dot loc-icon"></i>
+        <div class="nav-text-container">
+          <span class="nav-text-top">Deliver to</span>
+          <span class="nav-text-bottom">Seattle 98101</span>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="header-search">
+        <select id="searchCategorySelect" class="search-category-dropdown" onchange="app.filterByCategory(this.value)">
+          <option value="">All Categories</option>
+          <!-- Loaded dynamically -->
+        </select>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search RetailShop..." onkeyup="app.handleSearchInput(event)">
+        <button class="search-btn" onclick="app.handleSearch()" aria-label="Search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+        <div class="search-autosuggest-popup" id="searchAutosuggestPopup"></div>
+      </div>
+
+      <!-- Language & Currency -->
+      <div class="header-nav-item nav-lang" onclick="app.showToast('Language: EN (US Dollar)')">
+        <span class="flag-icon">🇺🇸</span>
+        <span class="nav-text-bottom">EN</span>
+        <i class="fa-solid fa-caret-down caret-icon"></i>
+      </div>
+
+      <!-- Account & Sign In Dropdown -->
+      <div class="header-nav-item nav-account" id="headerAccountNav" onclick="app.handleAccountClick()">
+        <div class="nav-text-container">
+          <span class="nav-text-top" id="navAccountTop">Hello, Sign in</span>
+          <span class="nav-text-bottom" id="navAccountBottom">Account <i class="fa-solid fa-caret-down"></i></span>
+        </div>
+      </div>
+
+      <!-- Returns & Orders -->
+      <div class="header-nav-item nav-orders" onclick="app.toggleOrdersModal()">
+        <div class="nav-text-container">
+          <span class="nav-text-top">Returns</span>
+          <span class="nav-text-bottom">& Orders</span>
+        </div>
+      </div>
+
+      <!-- Wishlist / Saved Items -->
+      <div class="header-nav-item nav-wishlist" onclick="app.toggleWishlistDrawer()">
+        <div class="cart-icon-container">
+          <i class="fa-solid fa-heart wishlist-icon"></i>
+          <span class="cart-count-badge wishlist-badge" id="wishlistCountBadge">0</span>
+        </div>
+        <span class="nav-text-bottom cart-label">Wishlist</span>
+      </div>
+
+      <!-- Shopping Cart -->
+      <div class="header-nav-item nav-cart" onclick="app.toggleCartDrawer()">
+        <div class="cart-icon-container">
+          <i class="fa-solid fa-cart-shopping cart-icon"></i>
+          <span class="cart-count-badge" id="cartCountBadge">0</span>
+        </div>
+        <span class="nav-text-bottom cart-label">Cart</span>
+      </div>
+    </div>
+
+    <!-- SUB-NAV / CATEGORY BAR -->
+    <nav class="sub-nav">
+      <button class="sub-nav-btn menu-toggle" onclick="app.toggleSideMenu()">
+        <i class="fa-solid fa-bars"></i> All
+      </button>
+      <div class="sub-nav-links" id="subNavLinks">
+        <a href="#" class="sub-link active" onclick="app.filterBySpecial('all'); return false;">Today's Deals <i class="fa-solid fa-fire deal-fire-icon"></i></a>
+        <a href="#" class="sub-link" onclick="app.filterBySpecial('prime'); return false;">Prime</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('electronics'); return false;">Electronics</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('computers'); return false;">Computers & Gaming</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('home-kitchen'); return false;">Home & Kitchen</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('fashion'); return false;">Fashion</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('beauty'); return false;">Beauty</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('books'); return false;">Books</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('toys'); return false;">Toys & Games</a>
+        <a href="#" class="sub-link" onclick="app.filterByCategory('sports'); return false;">Sports</a>
+      </div>
+      <div class="sub-nav-right">
+        <span class="prime-promo"><i class="fa-solid fa-truck-fast"></i> FREE 1-Day Delivery with Prime</span>
+      </div>
+    </nav>
+  </header>
+
+  <!-- SIDEBAR NAVIGATION MENU (HAMBURGER SLIDE-OUT) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="app.toggleSideMenu()"></div>
+  <aside class="side-drawer" id="sideDrawer">
+    <div class="side-drawer-header">
+      <i class="fa-solid fa-circle-user avatar-icon"></i>
+      <span>Hello, Customer</span>
+      <button class="close-side-btn" onclick="app.toggleSideMenu()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="side-drawer-content">
+      <div class="side-section-title">Trending & Deals</div>
+      <a href="#" class="side-link" onclick="app.filterBySpecial('deals'); app.toggleSideMenu(); return false;">Today's Deals</a>
+      <a href="#" class="side-link" onclick="app.filterBySpecial('prime'); app.toggleSideMenu(); return false;">Prime Video & Products</a>
+      
+      <div class="side-divider"></div>
+      <div class="side-section-title">Shop By Department</div>
+      <div id="sideCategoriesList">
+        <!-- Dynamically inserted categories -->
+      </div>
+
+      <div class="side-divider"></div>
+      <div class="side-section-title">Help &amp; Settings</div>
+      <a href="#" class="side-link" onclick="app.toggleOrdersModal(); app.toggleSideMenu(); return false;"><i class="fa-solid fa-box"></i> Your Orders</a>
+      <a href="#" class="side-link" onclick="app.showToast('Customer Service — RetailShop Support'); return false;"><i class="fa-solid fa-headset"></i> Customer Service</a>
+    </div>
+  </aside>
+
+  <!-- MAIN HERO CAROUSEL BANNER -->
+  <section class="hero-section">
+    <div class="hero-slider">
+      <div class="slide slide-active" style="background-image: linear-gradient(to bottom, rgba(19, 25, 33, 0.4), rgba(234, 237, 237, 1)), url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1600&q=80');">
+        <div class="slide-content">
+          <span class="hero-badge">OFFICIAL RETAILSHOP FESTIVAL</span>
+          <h1 class="hero-title">Upgrade Your Tech with Prime Savings</h1>
+          <p class="hero-subtitle">Up to 40% Off Laptops, Headphones, 4K TVs &amp; Smartwatches — Free 1-Day Delivery on Prime items.</p>
+          <button class="hero-cta-btn" onclick="app.filterByCategory('electronics')">Explore Electronics Deals <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AMAZON FEATURED MULTI-CARDS (GRID SECTION) -->
+  <section class="amz-container feature-cards-grid">
+    <div class="feature-card">
+      <h2 class="card-title">Electronics & Mobiles</h2>
+      <div class="card-thumb-grid">
+        <div class="thumb-item" onclick="app.filterByCategory('electronics')">
+          <img src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=300&q=80" alt="iPhone 15 Pro">
+          <span>Smartphones</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('electronics')">
+          <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=80" alt="Headphones">
+          <span>Headphones</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('electronics')">
+          <img src="https://images.unsplash.com/photo-1593784991095-87710daf9977?auto=format&fit=crop&w=300&q=80" alt="4K TVs">
+          <span>Smart TVs</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('electronics')">
+          <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80" alt="Smartwatches">
+          <span>Wearables</span>
+        </div>
+      </div>
+      <a href="#" class="card-link" onclick="app.filterByCategory('electronics'); return false;">See all in Electronics</a>
+    </div>
+
+    <div class="feature-card">
+      <h2 class="card-title">Computers & Gaming</h2>
+      <div class="card-thumb-grid">
+        <div class="thumb-item" onclick="app.filterByCategory('computers')">
+          <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=300&q=80" alt="MacBook">
+          <span>MacBooks</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('computers')">
+          <img src="https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=300&q=80" alt="Gaming PC">
+          <span>Gaming Laptops</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('computers')">
+          <img src="https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=300&q=80" alt="Mouse">
+          <span>Mice & Gear</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('computers')">
+          <img src="https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=300&q=80" alt="Keyboard">
+          <span>Keyboards</span>
+        </div>
+      </div>
+      <a href="#" class="card-link" onclick="app.filterByCategory('computers'); return false;">See all in Computers</a>
+    </div>
+
+    <div class="feature-card">
+      <h2 class="card-title">Home & Living Essentials</h2>
+      <div class="card-thumb-grid">
+        <div class="thumb-item" onclick="app.filterByCategory('home-kitchen')">
+          <img src="https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=300&q=80" alt="Coffee">
+          <span>Coffee Machines</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('home-kitchen')">
+          <img src="https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&w=300&q=80" alt="Roomba">
+          <span>Robot Vacuums</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('home-kitchen')">
+          <img src="https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=300&q=80" alt="Fitness">
+          <span>Fitness Gear</span>
+        </div>
+        <div class="thumb-item" onclick="app.filterByCategory('home-kitchen')">
+          <img src="https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?auto=format&fit=crop&w=300&q=80" alt="Toys">
+          <span>Toys & Games</span>
+        </div>
+      </div>
+      <a href="#" class="card-link" onclick="app.filterByCategory('home-kitchen'); return false;">Explore Home & Kitchen</a>
+    </div>
+
+    <div class="feature-card feature-card-prime">
+      <h2 class="card-title">Welcome to RetailShop Prime</h2>
+      <p class="card-desc">Fast, FREE Delivery on 100M+ items, exclusive deals, Prime Video & Music included.</p>
+      <div class="prime-perks-box">
+        <div class="perk"><i class="fa-solid fa-truck-fast"></i> Free 1-Day Shipping</div>
+        <div class="perk"><i class="fa-solid fa-film"></i> Award-winning Movies</div>
+        <div class="perk"><i class="fa-solid fa-tags"></i> Exclusive Member Savings</div>
+      </div>
+      <button class="prime-join-btn" onclick="app.filterBySpecial('prime')">Explore Prime Deals</button>
+    </div>
+  </section>
+
+  <!-- MAIN CATALOG CONTROLS & PRODUCT GRID -->
+  <main class="amz-container main-catalog">
+    
+    <!-- CATALOG HEADER & FILTERS BAR -->
+    <div class="catalog-toolbar">
+      <div class="toolbar-left">
+        <h2 class="section-heading" id="catalogHeading">Featured Products</h2>
+        <span class="results-count" id="resultsCount">Loading products...</span>
+      </div>
+
+      <div class="toolbar-filters">
+        <div class="filter-chip-group" id="categoryChips">
+          <!-- Dynamically inserted category filter chips -->
+        </div>
+
+        <div class="filter-actions">
+          <label class="toggle-checkbox">
+            <input type="checkbox" id="primeOnlyToggle" onchange="app.applyFilters()">
+            <span class="toggle-label"><i class="fa-solid fa-check text-prime"></i> <strong>prime</strong> Only</span>
+          </label>
+
+          <label class="toggle-checkbox">
+            <input type="checkbox" id="dealsOnlyToggle" onchange="app.applyFilters()">
+            <span class="toggle-label"><i class="fa-solid fa-fire text-deal"></i> Deals Only</span>
+          </label>
+
+          <select id="sortSelect" class="sort-dropdown" onchange="app.applyFilters()">
+            <option value="featured">Sort by: Featured</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+            <option value="rating">Avg. Customer Review</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCT GRID -->
+    <div class="product-grid" id="productGrid">
+      <!-- Loaded dynamically via app.js -->
+      <div class="loading-spinner">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        <p>Loading products...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="amz-footer">
+    <button class="back-to-top-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">Back to top</button>
+    
+    <div class="footer-links-container">
+      <div class="footer-col">
+        <h4>Get to Know Us</h4>
+        <a href="#" onclick="app.showToast('Careers Portal'); return false;">Careers</a>
+        <a href="#" onclick="app.showToast('RetailShop Tech Blog'); return false;">Blog</a>
+        <a href="#" onclick="app.showToast('About RetailShop'); return false;">About RetailShop</a>
+        <a href="#" onclick="app.showToast('Investor Relations'); return false;">Investor Relations</a>
+        <a href="#" onclick="app.showToast('RetailShop Smart Devices'); return false;">RetailShop Devices</a>
+      </div>
+      <div class="footer-col">
+        <h4>Make Money with Us</h4>
+        <a href="#" onclick="app.showToast('Sell products on RetailShop'); return false;">Sell products on RetailShop</a>
+        <a href="#" onclick="app.showToast('Sell on RetailShop Business'); return false;">Sell on RetailShop Business</a>
+        <a href="#" onclick="app.showToast('Affiliate Program'); return false;">Become an Affiliate</a>
+        <a href="#" onclick="app.showToast('Ad Manager Portal'); return false;">Advertise Your Products</a>
+        <a href="#" onclick="app.showToast('KDP Publishing Portal'); return false;">Self-Publish with Us</a>
+      </div>
+      <div class="footer-col">
+        <h4>RetailShop Payment Products</h4>
+        <a href="#" onclick="app.showToast('RetailShop Card Application'); return false;">RetailShop Business Card</a>
+        <a href="#" onclick="app.showToast('Rewards & Points'); return false;">Shop with Points</a>
+        <a href="#" onclick="app.showToast('Gift Card Balance Reload'); return false;">Reload Your Balance</a>
+        <a href="#" onclick="app.showToast('Currency Converter'); return false;">RetailShop Currency Converter</a>
+      </div>
+      <div class="footer-col">
+        <h4>Customer Support</h4>
+        <a href="#" onclick="app.showToast('Help Center — Browse FAQs'); return false;">Help Center</a>
+        <a href="#" onclick="app.showToast('Track your package'); return false;">Track Your Package</a>
+        <a href="#" onclick="app.showToast('Returns &amp; Refunds Policy'); return false;">Returns &amp; Refunds</a>
+        <a href="/admin.html">Admin Portal</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-logo">RetailShop</div>
+      <p>© 2026 RetailShop.com — Premium E-Commerce Experience. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ================= MODALS & DRAWERS ================= -->
+
+  <!-- PRODUCT DETAIL MODAL -->
+  <div class="modal-overlay" id="productDetailModalOverlay">
+    <div class="modal-card product-detail-modal">
+      <button class="modal-close-btn" onclick="app.closeProductModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="product-detail-body" id="productDetailContent">
+        <!-- Loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CART SIDE DRAWER -->
+  <div class="cart-drawer-overlay" id="cartDrawerOverlay" onclick="app.toggleCartDrawer()"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-header">
+      <h3><i class="fa-solid fa-cart-shopping"></i> Shopping Cart</h3>
+      <button class="close-cart-btn" onclick="app.toggleCartDrawer()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="free-shipping-bar">
+      <div class="shipping-progress-track">
+        <div class="shipping-progress-fill" id="shippingProgressFill" style="width: 100%;"></div>
+      </div>
+      <span class="shipping-msg" id="shippingMsg"><i class="fa-solid fa-circle-check"></i> Your order qualifies for <strong>FREE One-Day Shipping!</strong></span>
+    </div>
+
+    <div class="cart-drawer-items" id="cartItemsList">
+      <!-- Cart items loaded dynamically -->
+    </div>
+
+    <div class="cart-drawer-footer">
+      <div class="cart-summary-line">
+        <span>Subtotal (<span id="cartTotalItemsCount">0</span> items):</span>
+        <strong class="cart-subtotal-price" id="cartSubtotalPrice">$0.00</strong>
+      </div>
+      <button class="checkout-btn" onclick="app.openCheckoutModal()">Proceed to Checkout (<span id="checkoutBadgeCount">0</span> items)</button>
+    </div>
+  </aside>
+
+  <!-- CHECKOUT MODAL -->
+  <div class="modal-overlay" id="checkoutModalOverlay">
+    <div class="modal-card checkout-modal">
+      <button class="modal-close-btn" onclick="app.closeCheckoutModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="checkout-header">
+        <span class="logo-text text-dark">Retail<span class="logo-dot">Shop</span></span>
+        <h2>Secure Checkout</h2>
+        <span class="ssl-secure"><i class="fa-solid fa-lock"></i> 256-Bit SSL Encrypted</span>
+      </div>
+
+      <form id="checkoutForm" onsubmit="app.handleCheckoutSubmit(event)">
+        <div class="checkout-grid">
+          <!-- Left: Address & Payment -->
+          <div class="checkout-left">
+            <div class="checkout-step-box">
+              <h3>1. Shipping Address</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Full Name</label>
+                  <input type="text" id="chkName" required value="John Doe" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                  <label>Phone Number</label>
+                  <input type="tel" id="chkPhone" required value="+1 (555) 019-2834" placeholder="+1 (555) 000-0000">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Street Address</label>
+                <input type="text" id="chkAddress" required value="742 Evergreen Terrace" placeholder="123 Main St">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>City</label>
+                  <input type="text" id="chkCity" required value="Seattle" placeholder="Seattle">
+                </div>
+                <div class="form-group">
+                  <label>Zip / Postal Code</label>
+                  <input type="text" id="chkZip" required value="98101" placeholder="98101">
+                </div>
+              </div>
+            </div>
+
+            <div class="checkout-step-box">
+              <h3>2. Payment Method</h3>
+              <div class="payment-options">
+                <label class="payment-radio">
+                  <input type="radio" name="payMethod" value="Credit Card" checked>
+                  <span><i class="fa-solid fa-credit-card"></i> Credit or Debit Card (Visa, Mastercard, Amex)</span>
+                </label>
+                <label class="payment-radio">
+                  <input type="radio" name="payMethod" value="RetailShop Pay">
+                  <span><i class="fa-solid fa-wallet"></i> RetailShop Pay Balance / Gift Card</span>
+                </label>
+                <label class="payment-radio">
+                  <input type="radio" name="payMethod" value="Cash on Delivery">
+                  <span><i class="fa-solid fa-money-bill-wave"></i> Cash on Delivery (COD)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Order Summary -->
+          <div class="checkout-right">
+            <div class="order-summary-card">
+              <h3>Order Summary</h3>
+              <div class="summary-line">
+                <span>Items:</span>
+                <span id="chkItemsPrice">$0.00</span>
+              </div>
+              <div class="summary-line">
+                <span>Shipping & Handling:</span>
+                <span class="text-free">FREE</span>
+              </div>
+              <div class="summary-line">
+                <span>Estimated Tax (8%):</span>
+                <span id="chkTaxPrice">$0.00</span>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-line total-line">
+                <span>Order Total:</span>
+                <strong id="chkGrandTotal">$0.00</strong>
+              </div>
+              <button type="submit" class="place-order-btn" id="placeOrderBtn">Place Your Order</button>
+              <p class="terms-text">By placing your order, you agree to RetailShop's conditions of use and privacy notice.</p>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ORDER SUCCESS / TRACKING MODAL -->
+  <div class="modal-overlay" id="ordersModalOverlay">
+    <div class="modal-card orders-modal">
+      <button class="modal-close-btn" onclick="app.closeOrdersModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="orders-modal-header">
+        <h2><i class="fa-solid fa-box-open"></i> Your RetailShop Orders</h2>
+        <button class="refresh-btn" onclick="app.loadOrders()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+      </div>
+
+      <div class="orders-list" id="ordersListContent">
+        <!-- Loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN REDIRECT NOTICE (only shown if admin tries to use old modal) -->
+  <div class="modal-overlay" id="adminModalOverlay">
+    <div class="modal-card" style="max-width:440px;text-align:center;padding:48px 36px;">
+      <button class="modal-close-btn" onclick="app.closeAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div style="width:64px;height:64px;background:linear-gradient(135deg,#f97316,#dc2626);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#fff;margin:0 auto 20px;"><i class="fa-solid fa-shield-halved"></i></div>
+      <h2 style="margin-bottom:10px;">Admin Portal</h2>
+      <p style="color:#666;font-size:0.9rem;margin-bottom:24px;">Product management, inventory control, and order tracking are available in the dedicated Admin Portal.</p>
+      <a href="/admin.html" style="display:inline-block;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:0.95rem;"><i class="fa-solid fa-right-to-bracket"></i> Go to Admin Portal</a>
+    </div>
+  </div>
+
+  <!-- WISHLIST SIDE DRAWER -->
+  <div class="cart-drawer-overlay" id="wishlistDrawerOverlay" onclick="app.toggleWishlistDrawer()"></div>
+  <aside class="cart-drawer wishlist-drawer" id="wishlistDrawer">
+    <div class="cart-drawer-header">
+      <h3><i class="fa-solid fa-heart text-deal"></i> Your Wishlist & Saved Items</h3>
+      <button class="close-cart-btn" onclick="app.toggleWishlistDrawer()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="cart-drawer-items" id="wishlistItemsList">
+      <!-- Wishlist items loaded dynamically -->
+    </div>
+  </aside>
+
+  <!-- AUTH / USER LOGIN & REGISTER MODAL -->
+  <div class="modal-overlay" id="authModalOverlay">
+    <div class="modal-card auth-modal">
+      <button class="modal-close-btn" onclick="app.closeAuthModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="auth-header">
+        <span class="logo-text text-dark">Retail<span class="logo-dot">Shop</span></span>
+        <h2 id="authTitle">Sign In</h2>
+      </div>
+
+      <div class="auth-tab-buttons">
+        <button class="auth-tab-btn active" id="tabBtnLogin" onclick="app.switchAuthTab('login')">Sign-In</button>
+        <button class="auth-tab-btn" id="tabBtnRegister" onclick="app.switchAuthTab('register')">Create Account</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form" onsubmit="app.handleLoginSubmit(event)">
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" id="loginEmail" required placeholder="john@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="place-order-btn">Sign In</button>
+        <p class="terms-text" style="text-align: center; margin-top: 10px;">
+          Demo: <strong>john@example.com / user123</strong> &nbsp;|&nbsp; <a href="/admin.html" style="color:#007185;">Admin Portal</a>
+        </p>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" class="auth-form" style="display: none;" onsubmit="app.handleRegisterSubmit(event)">
+        <div class="form-group">
+          <label>Your Name *</label>
+          <input type="text" id="regName" required placeholder="First and last name">
+        </div>
+        <div class="form-group">
+          <label>Email address *</label>
+          <input type="email" id="regEmail" required placeholder="name@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password *</label>
+          <input type="password" id="regPassword" required placeholder="At least 6 characters">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="regPhone" placeholder="+1 (555) 000-0000">
+          </div>
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="regCity" placeholder="Seattle">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Shipping Address</label>
+          <input type="text" id="regAddress" placeholder="Street address">
+        </div>
+        <button type="submit" class="place-order-btn">Create your RetailShop account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT PRODUCT MODAL -->
+  <div class="modal-overlay" id="editProductModalOverlay">
+    <div class="modal-card admin-modal">
+      <button class="modal-close-btn" onclick="app.closeEditProductModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="admin-modal-header">
+        <h2><i class="fa-solid fa-pen-to-square"></i> Edit Product</h2>
+      </div>
+      <form id="editProductForm" onsubmit="app.handleEditProductSubmit(event)">
+        <input type="hidden" id="editProdId">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Title *</label>
+            <input type="text" id="editTitle" required>
+          </div>
+          <div class="form-group">
+            <label>Brand</label>
+            <input type="text" id="editBrand">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price ($) *</label>
+            <input type="number" step="0.01" id="editPrice" required>
+          </div>
+          <div class="form-group">
+            <label>List Price ($)</label>
+            <input type="number" step="0.01" id="editListPrice">
+          </div>
+          <div class="form-group">
+            <label>Stock Qty</label>
+            <input type="number" id="editStockQty">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category *</label>
+            <select id="editCategory" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Badge Text</label>
+            <input type="text" id="editBadgeText" placeholder="e.g. Best Seller">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="editDescription" rows="2"></textarea>
+        </div>
+
+        <div class="form-row flex-center">
+          <label class="toggle-checkbox">
+            <input type="checkbox" id="editIsPrime">
+            <span>Prime Eligible</span>
+          </label>
+          <label class="toggle-checkbox">
+            <input type="checkbox" id="editIsDeal">
+            <span>Deal of the Day</span>
+          </label>
+          <button type="submit" class="adm-submit-btn"><i class="fa-solid fa-floppy-disk"></i> Update Product in Oracle DB</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application JS -->
+  <script src="app.js"></script>
+</body>
+</html>
