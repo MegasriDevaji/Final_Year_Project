@@ -1,54 +1,43 @@
-const oracledb = require('oracledb');
+const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
-// Configure default output format to JSON Objects
-oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
-oracledb.autoCommit = true;
-
-const dbConfig = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  connectString: process.env.DB_CONNECT_STRING || 'localhost:1521/FREEPDB1',
-  poolMin: 2,
-  poolMax: 10,
-  poolIncrement: 1
-};
-
-let pool;
+const mongoUri = process.env.MONGODB_URI;
+const mongoDbName = process.env.MONGODB_DB_NAME || 'retailshop';
+let client;
+let database;
 
 async function initializePool() {
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI is required. Add your MongoDB Atlas connection string to the environment.');
+  }
+
   try {
-    pool = await oracledb.createPool(dbConfig);
-    console.log('✅ Oracle Database Connection Pool Initialized (Connected to FREEPDB1)');
+    client = new MongoClient(mongoUri);
+    await client.connect();
+    database = client.db(mongoDbName);
+    await database.command({ ping: 1 });
+    console.log(`✅ MongoDB Atlas connected (database: ${mongoDbName})`);
   } catch (err) {
-    console.error('❌ Failed to initialize Oracle Database Connection Pool:', err.message);
+    console.error('❌ Failed to initialize MongoDB connection:', err.message);
     throw err;
   }
 }
 
-async function executeQuery(sql, binds = [], options = {}) {
-  let connection;
-  try {
-    connection = await pool.getConnection();
-    const result = await connection.execute(sql, binds, options);
-    return result;
-  } catch (err) {
-    console.error('Oracle Execution Error SQL:', sql);
-    console.error('Error Details:', err.message);
-    throw err;
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing Oracle connection:', err.message);
-      }
-    }
+function getDb() {
+  if (!database) {
+    throw new Error('MongoDB is not connected.');
   }
+  return database;
+}
+
+async function closePool() {
+  if (client) await client.close();
+  client = undefined;
+  database = undefined;
 }
 
 module.exports = {
   initializePool,
-  executeQuery,
-  oracledb
+  getDb,
+  closePool
 };

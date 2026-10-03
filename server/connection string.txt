@@ -1,0 +1,1 @@
+mongodb+srv://megasribud_db_user:123@cluster0.wcxpq9p.mongodb.net/?appName=Cluster0

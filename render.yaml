@@ -7,9 +7,7 @@ services:
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
-      - key: DB_USER
+      - key: MONGODB_URI
         sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_CONNECT_STRING
+      - key: MONGODB_DB_NAME
         sync: false

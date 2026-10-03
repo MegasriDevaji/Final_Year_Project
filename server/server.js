@@ -25,20 +25,20 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Start Server & Initialize Oracle DB Connection Pool
+// Start Server & Initialize MongoDB Connection
 async function startServer() {
   try {
-    console.log('🔄 Connecting to Oracle Database 23c Free Edition...');
+    console.log('🔄 Connecting to MongoDB Atlas...');
     await initializePool();
 
     app.listen(PORT, () => {
       console.log(`=======================================================`);
       console.log(`🚀 RetailShop E-Commerce App Live on http://localhost:${PORT}`);
-      console.log(`📊 Connected to Oracle Database 23c (FREEPDB1)`);
+      console.log(`📊 Connected to MongoDB Atlas`);
       console.log(`=======================================================`);
     });
   } catch (err) {
-    console.error('❌ Server failed to start due to Oracle DB error:', err);
+    console.error('❌ Server failed to start due to MongoDB connection error:', err);
     process.exit(1);
   }
 }
