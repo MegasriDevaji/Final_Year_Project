@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { randomBytes } = require('crypto');
 const { getDb } = require('../db');
 
 const collection = name => getDb().collection(name);
@@ -20,11 +21,66 @@ async function categoryForProduct(product) {
 
 function publicUser(user) {
   if (!user) return user;
-  const result = { ...user };
+  const result = rebrandCopy({ ...user });
   delete result._id;
   delete result.PASSWORD_HASH;
   result.USER_ID = Number(user._id);
+  if (result.EMAIL === 'admin@amazon.com') result.EMAIL = 'admin@retailshop.com';
   return result;
+}
+
+function rebrandCopy(value) {
+  if (typeof value === 'string') {
+    return value.replace(/\bamazon\b/gi, 'RetailShop').replace(/\bprime\b/gi, 'RetailShop');
+  }
+  if (Array.isArray(value)) return value.map(rebrandCopy);
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, rebrandCopy(item)]));
+  }
+  return value;
+}
+
+async function createSession(user) {
+  const token = randomBytes(32).toString('hex');
+  const sessions = collection('auth_sessions');
+  await sessions.deleteMany({ EXPIRES_AT: { $lte: new Date() } });
+  await sessions.insertOne({
+    _id: token,
+    USER_ID: Number(user._id),
+    EXPIRES_AT: new Date(Date.now() + 7 * 86400000)
+  });
+  return token;
+}
+
+async function requireUser(req, res, next) {
+  try {
+    const authorization = req.get('Authorization') || '';
+    const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+    if (!token) return res.status(401).json({ error: 'Sign in with a customer account to place an order.' });
+
+    const session = await collection('auth_sessions').findOne({
+      _id: token,
+      EXPIRES_AT: { $gt: new Date() }
+    });
+    if (!session) return res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
+
+    const user = await collection('users').findOne({ _id: session.USER_ID });
+    if (!user) return res.status(401).json({ error: 'Your account could not be verified. Please sign in again.' });
+    req.user = user;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+function requireCustomer(req, res, next) {
+  if (req.user.ROLE !== 'CUSTOMER') return res.status(403).json({ error: 'Only customer accounts can place orders.' });
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user.ROLE !== 'ADMIN') return res.status(403).json({ error: 'Administrator access is required.' });
+  next();
 }
 
 router.get('/health', async (req, res) => {
@@ -36,9 +92,7 @@ router.get('/health', async (req, res) => {
     ]);
     res.json({
       status: 'ONLINE',
-      database: 'MongoDB Atlas',
-      dbName: getDb().databaseName,
-      openMode: 'READ WRITE',
+      service: 'RetailShop',
       metrics: { PRODUCTS_COUNT: products, CATEGORIES_COUNT: categories, ORDERS_COUNT: orders },
       timestamp: new Date()
     });
@@ -64,7 +118,7 @@ router.get('/categories', async (req, res) => {
 
 router.get('/products', async (req, res) => {
   try {
-    const { category, search, deal, prime, minPrice, maxPrice, sort } = req.query;
+    const { category, search, deal, delivery, minPrice, maxPrice, sort } = req.query;
     const filter = {};
     if (category) {
       const categoryNumber = numberId(category);
@@ -78,7 +132,7 @@ router.get('/products', async (req, res) => {
       filter.$and = [{ $or: [{ TITLE: expression }, { BRAND: expression }, { DESCRIPTION: expression }] }];
     }
     if (deal === '1' || deal === 'true') filter.IS_DEAL = 1;
-    if (prime === '1' || prime === 'true') filter.IS_PRIME = 1;
+    if (delivery === '1' || delivery === 'true') filter.IS_PRIME = 1;
     if (minPrice) filter.PRICE = { ...(filter.PRICE || {}), $gte: Number.parseFloat(minPrice) };
     if (maxPrice) filter.PRICE = { ...(filter.PRICE || {}), $lte: Number.parseFloat(maxPrice) };
 
@@ -93,7 +147,7 @@ router.get('/products', async (req, res) => {
     const categories = await collection('categories').find({}).toArray();
     const categoryMap = new Map(categories.map(item => [Number(item._id), item.NAME]));
     res.json(products.map(product => ({
-      ...product,
+      ...rebrandCopy(product),
       PRODUCT_ID: Number(product._id),
       CATEGORY_NAME: categoryMap.get(Number(product.CATEGORY_ID)) || null
     })));
@@ -112,12 +166,12 @@ router.get('/products/:id', async (req, res) => {
       collection('product_reviews').find({ PRODUCT_ID: Number(product._id) }).sort({ REVIEW_DATE: -1 }).toArray()
     ]);
     res.json({
-      ...product,
+      ...rebrandCopy(product),
       PRODUCT_ID: Number(product._id),
       CATEGORY_NAME: category?.NAME || null,
       CATEGORY_SLUG: category?.SLUG || null,
       IMAGES: images.length ? images.map(image => image.IMAGE_URL) : [product.MAIN_IMAGE],
-      REVIEWS: reviews.map(review => ({ ...review, REVIEW_ID: Number(review._id) }))
+      REVIEWS: reviews.map(review => ({ ...rebrandCopy(review), REVIEW_ID: Number(review._id) }))
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -153,57 +207,105 @@ router.post('/products/:id/reviews', async (req, res) => {
   }
 });
 
-router.post('/checkout', async (req, res) => {
+router.post('/checkout', requireUser, requireCustomer, async (req, res) => {
   try {
-    const { customerName, email, shippingAddress, city, postalCode, phone, paymentMethod, items, totalAmount } = req.body;
-    if (!items || items.length === 0) return res.status(400).json({ error: 'Cart is empty.' });
-    const orderId = await nextId('orders');
-    const orderNumber = 'AMZ-' + Date.now().toString().slice(-6) + Math.floor(100 + Math.random() * 900);
-    const orderItems = items.map(item => ({
-      PRODUCT_ID: Number(item.PRODUCT_ID),
-      PRODUCT_TITLE: item.TITLE,
-      PRICE: Number(item.PRICE),
-      QUANTITY: Number(item.QUANTITY),
-      IMAGE_URL: item.MAIN_IMAGE
+    const { customerName, email, shippingAddress, city, postalCode, phone, paymentMethod, items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'Cart is empty.' });
+    if (paymentMethod && !['Credit Card', 'Cash on Delivery'].includes(paymentMethod)) {
+      return res.status(400).json({ error: 'Select a supported payment method.' });
+    }
+    const requestedItems = items.map(item => ({
+      productId: numberId(item.PRODUCT_ID),
+      quantity: Number(item.QUANTITY)
     }));
-    await collection('orders').insertOne({
-      _id: orderId,
-      ORDER_NUMBER: orderNumber,
-      USER_ID: 2,
-      CUSTOMER_NAME: customerName || 'Valued Customer',
-      EMAIL: email || '',
-      SHIPPING_ADDRESS: shippingAddress || '123 Main Street',
-      CITY: city || 'Seattle',
-      POSTAL_CODE: postalCode || '98101',
-      PHONE: phone || '+1-555-0199',
-      TOTAL_AMOUNT: Number.parseFloat(totalAmount),
-      PAYMENT_METHOD: paymentMethod || 'Credit Card',
-      PAYMENT_STATUS: 'Paid',
-      ORDER_STATUS: 'Processing',
-      ESTIMATED_DELIVERY: new Date(Date.now() + 2 * 86400000),
-      ORDER_DATE: new Date(),
-      ITEMS: orderItems
-    });
-    await Promise.all(orderItems.map(item => collection('products').updateOne(
-      { _id: item.PRODUCT_ID },
-      { $inc: { STOCK_QTY: -item.QUANTITY } }
-    )));
-    res.json({ success: true, orderId, orderNumber, message: 'Order placed successfully! Recorded in MongoDB Atlas.' });
+    if (requestedItems.some(item => !Number.isSafeInteger(item.productId) || item.productId <= 0 || !Number.isSafeInteger(item.quantity) || item.quantity <= 0)) {
+      return res.status(400).json({ error: 'Cart contains an invalid product or quantity.' });
+    }
+
+    const productIds = [...new Set(requestedItems.map(item => item.productId))];
+    const products = await collection('products').find({ _id: { $in: productIds } }).toArray();
+    const productMap = new Map(products.map(product => [Number(product._id), product]));
+    const orderItems = [];
+    let subtotal = 0;
+    for (const item of requestedItems) {
+      const product = productMap.get(item.productId);
+      if (!product) return res.status(404).json({ error: 'A product in your cart is no longer available.' });
+      if (Number(product.STOCK_QTY) < item.quantity) {
+        return res.status(409).json({ error: `${product.TITLE} does not have enough stock.` });
+      }
+      const price = Number(product.PRICE);
+      if (!Number.isFinite(price) || price < 0) return res.status(400).json({ error: 'A product in your cart has an invalid price.' });
+      subtotal += price * item.quantity;
+      orderItems.push({
+        PRODUCT_ID: item.productId,
+        PRODUCT_TITLE: product.TITLE,
+        PRICE: price,
+        QUANTITY: item.quantity,
+        IMAGE_URL: product.MAIN_IMAGE || ''
+      });
+    }
+
+    const calculatedTotal = Number((subtotal * 1.08).toFixed(2));
+    const orderId = await nextId('orders');
+    const orderNumber = 'RS-' + Date.now().toString().slice(-6) + Math.floor(100 + Math.random() * 900);
+    const reservedItems = [];
+    try {
+      for (const item of orderItems) {
+        const reservation = await collection('products').updateOne(
+          { _id: item.PRODUCT_ID, STOCK_QTY: { $gte: item.QUANTITY } },
+          { $inc: { STOCK_QTY: -item.QUANTITY } }
+        );
+        if (reservation.modifiedCount !== 1) {
+          const error = new Error(`${item.PRODUCT_TITLE} does not have enough stock.`);
+          error.statusCode = 409;
+          throw error;
+        }
+        reservedItems.push(item);
+      }
+
+      await collection('orders').insertOne({
+        _id: orderId,
+        ORDER_NUMBER: orderNumber,
+        USER_ID: Number(req.user._id),
+        CUSTOMER_NAME: customerName || req.user.FULL_NAME,
+        EMAIL: email || req.user.EMAIL,
+        SHIPPING_ADDRESS: shippingAddress || req.user.ADDRESS || '',
+        CITY: city || req.user.CITY || '',
+        POSTAL_CODE: postalCode || req.user.POSTAL_CODE || '',
+        PHONE: phone || req.user.PHONE || '',
+        TOTAL_AMOUNT: calculatedTotal,
+        PAYMENT_METHOD: paymentMethod || 'Credit Card',
+        PAYMENT_STATUS: 'Pending',
+        ORDER_STATUS: 'Processing',
+        ESTIMATED_DELIVERY: new Date(Date.now() + 2 * 86400000),
+        ORDER_DATE: new Date(),
+        ITEMS: orderItems
+      });
+    } catch (err) {
+      await Promise.all(reservedItems.map(item => collection('products').updateOne(
+        { _id: item.PRODUCT_ID },
+        { $inc: { STOCK_QTY: item.QUANTITY } }
+      )));
+      if (err.statusCode === 409) return res.status(err.statusCode).json({ error: err.message });
+      throw err;
+    }
+    res.json({ success: true, orderId, orderNumber, message: 'Order placed successfully in RetailShop.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.get('/orders', async (req, res) => {
+router.get('/orders', requireUser, async (req, res) => {
   try {
-    const orders = await collection('orders').find({}).sort({ _id: -1 }).toArray();
-    res.json(orders.map(order => ({ ...order, ORDER_ID: Number(order._id), ITEMS: order.ITEMS || [] })));
+    const filter = req.user.ROLE === 'ADMIN' ? {} : { USER_ID: Number(req.user._id) };
+    const orders = await collection('orders').find(filter).sort({ _id: -1 }).toArray();
+    res.json(orders.map(order => ({ ...rebrandCopy(order), ORDER_ID: Number(order._id), ITEMS: order.ITEMS || [] })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post('/admin/products', async (req, res) => {
+router.post('/admin/products', requireUser, requireAdmin, async (req, res) => {
   try {
     const { title, description, brand, price, listPrice, categoryId, mainImage, stockQty, isPrime, isDeal, badgeText } = req.body;
     if (!title || !price || !categoryId) return res.status(400).json({ error: 'Title, Price, and Category are required.' });
@@ -218,25 +320,25 @@ router.post('/admin/products', async (req, res) => {
       CATEGORY_ID: numberId(categoryId), IS_PRIME: boolFlag(isPrime), IS_DEAL: boolFlag(isDeal),
       BADGE_TEXT: badgeText || 'New Arrival', CREATED_AT: new Date()
     });
-    res.json({ success: true, message: 'Product successfully added to MongoDB Atlas!' });
+    res.json({ success: true, message: 'Product successfully added to RetailShop.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete('/admin/products/:id', async (req, res) => {
+router.delete('/admin/products/:id', requireUser, requireAdmin, async (req, res) => {
   try {
     const productId = numberId(req.params.id);
     await collection('products').deleteOne({ _id: productId });
     await collection('product_images').deleteMany({ PRODUCT_ID: productId });
     await collection('product_reviews').deleteMany({ PRODUCT_ID: productId });
-    res.json({ success: true, message: 'Product deleted from MongoDB Atlas.' });
+    res.json({ success: true, message: 'Product deleted from RetailShop.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.put('/admin/products/:id', async (req, res) => {
+router.put('/admin/products/:id', requireUser, requireAdmin, async (req, res) => {
   try {
     const productId = numberId(req.params.id);
     const { title, description, brand, price, listPrice, categoryId, stockQty, isPrime, isDeal, badgeText } = req.body;
@@ -249,13 +351,13 @@ router.put('/admin/products/:id', async (req, res) => {
       STOCK_QTY: Number.parseInt(stockQty || 50, 10), CATEGORY_ID: numberId(categoryId),
       IS_PRIME: boolFlag(isPrime), IS_DEAL: boolFlag(isDeal), BADGE_TEXT: badgeText || ''
     } });
-    res.json({ success: true, message: 'Product updated successfully in MongoDB Atlas!' });
+    res.json({ success: true, message: 'Product updated successfully in RetailShop.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.patch('/admin/orders/:id/status', async (req, res) => {
+router.patch('/admin/orders/:id/status', requireUser, requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     const validStatuses = ['Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'];
@@ -282,7 +384,19 @@ router.post('/auth/register', async (req, res) => {
       ROLE: 'CUSTOMER', CREATED_AT: new Date()
     };
     await collection('users').insertOne(user);
-    res.json({ success: true, message: 'Account created successfully!', user: publicUser(user) });
+    const authToken = await createSession(user);
+    res.json({ success: true, message: 'Account created successfully!', user: publicUser(user), authToken });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/auth/logout', async (req, res) => {
+  try {
+    const authorization = req.get('Authorization') || '';
+    const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+    if (token) await collection('auth_sessions').deleteOne({ _id: token });
+    res.json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -296,7 +410,8 @@ router.post('/auth/login', async (req, res) => {
     const lookupEmail = normalizedEmail === 'admin@retailshop.com' ? 'admin@amazon.com' : normalizedEmail;
     const user = await collection('users').findOne({ EMAIL: lookupEmail });
     if (!user || user.PASSWORD_HASH !== password) return res.status(401).json({ error: 'Invalid email or password.' });
-    res.json({ success: true, message: 'Login successful!', user: publicUser(user) });
+    const authToken = await createSession(user);
+    res.json({ success: true, message: 'Login successful!', user: publicUser(user), authToken });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

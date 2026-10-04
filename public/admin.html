@@ -190,7 +190,7 @@
         <label>Email Address</label>
         <div class="input-wrap">
           <i class="fa-solid fa-envelope input-icon"></i>
-          <input type="email" id="adminEmail" required placeholder="admin@amazon.com" autocomplete="username">
+          <input type="email" id="adminEmail" required placeholder="admin@example.com" autocomplete="username">
         </div>
       </div>
       <div class="form-group">
@@ -204,13 +204,6 @@
         <i class="fa-solid fa-right-to-bracket"></i> Sign In to Admin Portal
       </button>
     </form>
-
-    <div class="divider"></div>
-    <div class="hint-box">
-      <strong>Demo Admin Credentials</strong><br>
-      Email: <strong>admin@amazon.com</strong><br>
-      Password: <strong>admin123</strong>
-    </div>
   </div>
 </div>
 
@@ -304,7 +297,7 @@
           <div class="fgrp"><label>Badge Text</label><input type="text" id="admBadgeText" placeholder="e.g. Best Seller, New Arrival"></div>
           <div class="fgrp"><label>Description</label><textarea id="admDescription" rows="3" placeholder="Full product description..."></textarea></div>
           <div class="toggle-row">
-            <label class="toggle-item"><input type="checkbox" id="admIsPrime" checked><span>Prime Eligible</span></label>
+            <label class="toggle-item"><input type="checkbox" id="admIsPrime" checked><span>Free One-Day Delivery</span></label>
             <label class="toggle-item"><input type="checkbox" id="admIsDeal"><span>Deal of the Day</span></label>
           </div>
           <button type="submit" class="submit-btn" id="addProdBtn"><i class="fa-solid fa-floppy-disk"></i> Save Product</button>
@@ -368,7 +361,7 @@
       </div>
       <div class="fgrp"><label>Description</label><textarea id="editDescription" rows="2"></textarea></div>
       <div class="toggle-row">
-        <label class="toggle-item"><input type="checkbox" id="editIsPrime"><span>Prime Eligible</span></label>
+        <label class="toggle-item"><input type="checkbox" id="editIsPrime"><span>Free One-Day Delivery</span></label>
         <label class="toggle-item"><input type="checkbox" id="editIsDeal"><span>Deal of the Day</span></label>
       </div>
       <button type="submit" class="submit-btn"><i class="fa-solid fa-floppy-disk"></i> Update Product</button>
@@ -385,6 +378,13 @@ let allCategories = [];
 let currentAdmin = null;
 let adminExportRows = [];
 let adminRealtimeTimer = null;
+
+function adminFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const token = localStorage.getItem('rs_admin_auth_token');
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return fetch(url, { ...options, headers });
+}
 
 /* AUTH */
 async function handleAdminLogin(e) {
@@ -404,8 +404,13 @@ async function handleAdminLogin(e) {
     if (data.success && data.user.ROLE === 'ADMIN') {
       currentAdmin = data.user;
       localStorage.setItem('rs_admin_session', JSON.stringify(data.user));
+      localStorage.setItem('rs_admin_auth_token', data.authToken);
       showDashboard();
     } else if (data.success) {
+      await fetch(`${API}/auth/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${data.authToken}` }
+      });
       errTxt.textContent = 'Access denied. This portal is for administrators only.';
       err.classList.add('visible');
     } else {
@@ -422,8 +427,18 @@ async function handleAdminLogin(e) {
 }
 
 function handleLogout() {
+  const token = localStorage.getItem('rs_admin_auth_token');
+  if (token) {
+    fetch(`${API}/auth/logout`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    }).catch(() => {});
+  }
+  if (adminRealtimeTimer) clearInterval(adminRealtimeTimer);
+  adminRealtimeTimer = null;
   currentAdmin = null;
   localStorage.removeItem('rs_admin_session');
+  localStorage.removeItem('rs_admin_auth_token');
   document.getElementById('adminDashboard').style.display = 'none';
   document.getElementById('loginSection').style.display = 'flex';
   document.getElementById('loginTopbar').style.display = 'flex';
@@ -446,11 +461,12 @@ function showDashboard() {
 function startAdminRealtimeSync() {
   if (adminRealtimeTimer) clearInterval(adminRealtimeTimer);
   adminRealtimeTimer = setInterval(() => {
+    if (document.hidden) return;
     loadMetrics();
-    loadProducts();
-    loadOrders();
     loadSalesReport();
-  }, 10000);
+    if (document.getElementById('panel-orders').classList.contains('active')) loadOrders();
+    if (document.getElementById('panel-products').classList.contains('active')) loadProducts();
+  }, 30000);
 }
 
 /* METRICS */
@@ -505,7 +521,7 @@ function renderTable() {
       <td style="color:#94a3b8">${p.CATEGORY_NAME || '—'}</td>
       <td style="color:#94a3b8">${p.STOCK_QTY ?? '—'}</td>
       <td>
-        ${p.IS_PRIME ? '<span class="pill pill-prime"><i class="fa-solid fa-check"></i>Prime</span>' : '<span class="pill pill-no">—</span>'}
+        ${p.IS_PRIME ? '<span class="pill pill-prime"><i class="fa-solid fa-check"></i>Delivery</span>' : '<span class="pill pill-no">—</span>'}
         ${p.IS_DEAL ? ' <span class="pill pill-deal"><i class="fa-solid fa-fire"></i>Deal</span>' : ''}
       </td>
       <td>
@@ -524,7 +540,7 @@ async function handleAddProduct(e) {
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
   try {
-    const res = await fetch(`${API}/admin/products`, {
+    const res = await adminFetch(`${API}/admin/products`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: document.getElementById('admTitle').value,
@@ -576,7 +592,7 @@ async function handleEditProduct(e) {
   e.preventDefault();
   const id = document.getElementById('editProdId').value;
   try {
-    const res = await fetch(`${API}/admin/products/${id}`, {
+    const res = await adminFetch(`${API}/admin/products/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: document.getElementById('editTitle').value,
@@ -601,7 +617,7 @@ async function deleteProduct(id) {
   const p = allProducts.find(x => x.PRODUCT_ID === id);
   if (!p || !confirm(`Delete "${p.TITLE}"?\n\nThis action cannot be undone.`)) return;
   try {
-    const res = await fetch(`${API}/admin/products/${id}`, { method: 'DELETE' });
+    const res = await adminFetch(`${API}/admin/products/${id}`, { method: 'DELETE' });
     const data = await res.json();
     if (data.success) { showToast('Product deleted.'); loadProducts(); loadMetrics(); }
     else { showToast(data.error || 'Delete failed.', true); }
@@ -613,7 +629,7 @@ async function loadOrders() {
   const c = document.getElementById('ordersContainer');
   c.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading orders...</div>`;
   try {
-    const res = await fetch(`${API}/orders`);
+    const res = await adminFetch(`${API}/orders`);
     const orders = await res.json();
     if (!orders.length) { c.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open"></i>No orders yet.</div>`; return; }
     const statusMap = { 'Processing':'sb-proc','Shipped':'sb-ship','Out for Delivery':'sb-delv','Delivered':'sb-done','Cancelled':'sb-canc' };
@@ -650,13 +666,14 @@ async function loadSalesReport() {
   salesTableBody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin"></i>Loading sales data...</div></td></tr>`;
 
   try {
-    const res = await fetch(`${API}/orders`);
+    const res = await adminFetch(`${API}/orders`);
     const orders = await res.json();
     const todayOrders = (orders || []).filter(order => isSameLocalDate(order.ORDER_DATE || new Date()));
 
     const totalOrders = todayOrders.length;
-    const revenue = todayOrders.reduce((sum, o) => sum + Number(o.TOTAL_AMOUNT || 0), 0);
-    const avgOrder = totalOrders ? revenue / totalOrders : 0;
+    const paidOrders = todayOrders.filter(order => order.PAYMENT_STATUS === 'Paid');
+    const revenue = paidOrders.reduce((sum, order) => sum + Number(order.TOTAL_AMOUNT || 0), 0);
+    const avgOrder = paidOrders.length ? revenue / paidOrders.length : 0;
 
     salesDateLabel.textContent = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     salesSummary.innerHTML = `
@@ -666,11 +683,11 @@ async function loadSalesReport() {
       </div>
       <div class="metric-card" style="padding:16px;">
         <div class="metric-icon ic-green"><i class="fa-solid fa-dollar-sign"></i></div>
-        <div><div class="metric-val" style="font-size:1.3rem;">$${revenue.toFixed(2)}</div><div class="metric-lbl">Revenue</div></div>
+        <div><div class="metric-val" style="font-size:1.3rem;">$${revenue.toFixed(2)}</div><div class="metric-lbl">Paid Revenue</div></div>
       </div>
       <div class="metric-card" style="padding:16px;">
         <div class="metric-icon ic-blue"><i class="fa-solid fa-chart-line"></i></div>
-        <div><div class="metric-val" style="font-size:1.3rem;">$${avgOrder.toFixed(2)}</div><div class="metric-lbl">Avg. Order</div></div>
+        <div><div class="metric-val" style="font-size:1.3rem;">$${avgOrder.toFixed(2)}</div><div class="metric-lbl">Avg. Paid Order</div></div>
       </div>
     `;
 
@@ -738,12 +755,16 @@ function downloadTodaySalesCsv() {
 
 async function updateOrderStatus(orderId, status) {
   try {
-    const res = await fetch(`${API}/admin/orders/${orderId}/status`, {
+    const res = await adminFetch(`${API}/admin/orders/${orderId}/status`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
     const data = await res.json();
-    if (data.success) showToast(`Status updated to "${status}"`);
+    if (data.success) {
+      showToast(`Status updated to "${status}"`);
+      await loadOrders();
+      await loadSalesReport();
+    }
     else showToast(data.error || 'Failed.', true);
   } catch(e) { showToast('Network error.', true); }
 }
@@ -771,7 +792,19 @@ function showToast(msg, isErr = false) {
 /* INIT */
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('rs_admin_session');
-  if (saved) { try { currentAdmin = JSON.parse(saved); showDashboard(); } catch(e) { localStorage.removeItem('rs_admin_session'); } }
+  const token = localStorage.getItem('rs_admin_auth_token');
+  if (saved && token) {
+    try {
+      const user = JSON.parse(saved);
+      if (user.ROLE === 'ADMIN') {
+        currentAdmin = user;
+        showDashboard();
+        return;
+      }
+    } catch(e) {}
+  }
+  localStorage.removeItem('rs_admin_session');
+  localStorage.removeItem('rs_admin_auth_token');
 });
 </script>
 </body>

@@ -68,15 +68,20 @@ async function autoSeedIfEmpty() {
     { _id: 15, TITLE: 'Adjustable Dumbbell Set (5 to 52.5 lbs Pair)', DESCRIPTION: 'Replaces 15 sets of weights. Easy-to-use selection dials for adjusting weight from 5 up to 52.5 lbs.', BRAND: 'Bowflex', PRICE: 379.00, LIST_PRICE: 429.00, DISCOUNT_PCT: 12, RATING: 4.7, REVIEW_COUNT: 18400, STOCK_QTY: 30, MAIN_IMAGE: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80', CATEGORY_ID: 8, CATEGORY_SLUG: 'sports', IS_PRIME: 1, IS_DEAL: 1, BADGE_TEXT: 'Top Fitness', CREATED_AT: new Date() }
   ];
 
+  products.forEach((product, index) => {
+    product.IS_PRIME = index % 3 === 2 ? 0 : 1;
+    product.BADGE_TEXT = product.BADGE_TEXT?.replace(/\bprime\b/gi, 'RetailShop');
+  });
+
   const reviews = [
     { _id: 1, PRODUCT_ID: 1, USER_NAME: 'Alex M.', RATING: 5, REVIEW_TITLE: 'Best iPhone ever made!', COMMENT_TEXT: 'The titanium feel is amazing and lightweight. Battery lasts all day and the camera in low light is unbelievable.', REVIEW_DATE: new Date() },
-    { _id: 2, PRODUCT_ID: 1, USER_NAME: 'Sarah K.', RATING: 5, REVIEW_TITLE: 'Upgraded from 12 Pro', COMMENT_TEXT: 'Fast delivery via Prime! Action button setup is super convenient.', REVIEW_DATE: new Date() },
+    { _id: 2, PRODUCT_ID: 1, USER_NAME: 'Sarah K.', RATING: 5, REVIEW_TITLE: 'Upgraded from 12 Pro', COMMENT_TEXT: 'Fast one-day delivery! Action button setup is super convenient.', REVIEW_DATE: new Date() },
     { _id: 3, PRODUCT_ID: 2, USER_NAME: 'David R.', RATING: 5, REVIEW_TITLE: 'Silence on airplane flights', COMMENT_TEXT: "Active noise cancellation is unbeatable. Used it on a 12 hour flight and didn't hear a single baby crying.", REVIEW_DATE: new Date() },
     { _id: 4, PRODUCT_ID: 5, USER_NAME: 'Elena P.', RATING: 5, REVIEW_TITLE: 'Sleek, silent, and blazing fast!', COMMENT_TEXT: 'M2 chip handles 4K video editing without spinning up any fan noise. Super light weight for travel.', REVIEW_DATE: new Date() }
   ];
 
   const users = [
-    { _id: 1, FULL_NAME: 'Amazon Admin', EMAIL: 'admin@amazon.com', PASSWORD_HASH: 'admin123', PHONE: '+1-800-555-0199', ADDRESS: '100 Amazon Way', CITY: 'Seattle', POSTAL_CODE: '98101', ROLE: 'ADMIN', CREATED_AT: new Date() },
+    { _id: 1, FULL_NAME: 'RetailShop Admin', EMAIL: 'admin@amazon.com', PASSWORD_HASH: 'admin123', PHONE: '+1-800-555-0199', ADDRESS: '100 RetailShop Way', CITY: 'Seattle', POSTAL_CODE: '98101', ROLE: 'ADMIN', CREATED_AT: new Date() },
     { _id: 2, FULL_NAME: 'John Doe', EMAIL: 'john@example.com', PASSWORD_HASH: 'user123', PHONE: '+1-555-0144', ADDRESS: '742 Evergreen Terrace', CITY: 'Springfield', POSTAL_CODE: '97477', ROLE: 'CUSTOMER', CREATED_AT: new Date() }
   ];
 

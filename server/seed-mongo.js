@@ -52,15 +52,20 @@ const products = [
   { _id: 15, TITLE: 'Adjustable Dumbbell Set (5 to 52.5 lbs Pair)', DESCRIPTION: 'Replaces 15 sets of weights. Easy-to-use selection dials for adjusting weight from 5 up to 52.5 lbs.', BRAND: 'Bowflex', PRICE: 379.00, LIST_PRICE: 429.00, DISCOUNT_PCT: 12, RATING: 4.7, REVIEW_COUNT: 18400, STOCK_QTY: 30, MAIN_IMAGE: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80', CATEGORY_ID: 8, CATEGORY_SLUG: 'sports', IS_PRIME: 1, IS_DEAL: 1, BADGE_TEXT: 'Top Fitness', CREATED_AT: new Date() }
 ];
 
+products.forEach((product, index) => {
+  product.IS_PRIME = index % 3 === 2 ? 0 : 1;
+  product.BADGE_TEXT = product.BADGE_TEXT?.replace(/\bprime\b/gi, 'RetailShop');
+});
+
 const reviews = [
   { _id: 1, PRODUCT_ID: 1, USER_NAME: 'Alex M.', RATING: 5, REVIEW_TITLE: 'Best iPhone ever made!', COMMENT_TEXT: 'The titanium feel is amazing and lightweight. Battery lasts all day long and the camera in low light is unbelievable.', REVIEW_DATE: new Date() },
-  { _id: 2, PRODUCT_ID: 1, USER_NAME: 'Sarah K.', RATING: 5, REVIEW_TITLE: 'Upgraded from 12 Pro', COMMENT_TEXT: 'Fast delivery via Prime! Action button setup is super convenient.', REVIEW_DATE: new Date() },
+  { _id: 2, PRODUCT_ID: 1, USER_NAME: 'Sarah K.', RATING: 5, REVIEW_TITLE: 'Upgraded from 12 Pro', COMMENT_TEXT: 'Fast one-day delivery! Action button setup is super convenient.', REVIEW_DATE: new Date() },
   { _id: 3, PRODUCT_ID: 2, USER_NAME: 'David R.', RATING: 5, REVIEW_TITLE: 'Silence on airplane flights', COMMENT_TEXT: "Active noise cancellation is unbeatable. Used it on a 12 hour flight and didn't hear a single baby crying.", REVIEW_DATE: new Date() },
   { _id: 4, PRODUCT_ID: 5, USER_NAME: 'Elena P.', RATING: 5, REVIEW_TITLE: 'Sleek, silent, and blazing fast!', COMMENT_TEXT: 'M2 chip handles 4K video editing without spinning up any fan noise. Super light weight for travel.', REVIEW_DATE: new Date() }
 ];
 
 const users = [
-  { _id: 1, FULL_NAME: 'Amazon Admin', EMAIL: 'admin@amazon.com', PASSWORD_HASH: 'admin123', PHONE: '+1-800-555-0199', ADDRESS: '100 Amazon Way', CITY: 'Seattle', POSTAL_CODE: '98101', ROLE: 'ADMIN', CREATED_AT: new Date() },
+  { _id: 1, FULL_NAME: 'RetailShop Admin', EMAIL: 'admin@amazon.com', PASSWORD_HASH: 'admin123', PHONE: '+1-800-555-0199', ADDRESS: '100 RetailShop Way', CITY: 'Seattle', POSTAL_CODE: '98101', ROLE: 'ADMIN', CREATED_AT: new Date() },
   { _id: 2, FULL_NAME: 'John Doe', EMAIL: 'john@example.com', PASSWORD_HASH: 'user123', PHONE: '+1-555-0144', ADDRESS: '742 Evergreen Terrace', CITY: 'Springfield', POSTAL_CODE: '97477', ROLE: 'CUSTOMER', CREATED_AT: new Date() }
 ];
 
@@ -74,6 +79,91 @@ async function upsertAll(collection, docs) {
   );
 }
 
+async function nextNumericId(collection) {
+  const last = await collection.findOne({}, { sort: { _id: -1 }, projection: { _id: 1 } });
+  return last ? Number(last._id) + 1 : 1;
+}
+
+async function seedDemoOrders(db, availableProducts = products) {
+  if (!availableProducts.length) throw new Error('No products found. Seed products before creating demo orders.');
+
+  const customerProfiles = [
+    ['Avery Johnson', 'Portland', '97201'],
+    ['Morgan Lee', 'Seattle', '98101'],
+    ['Jordan Patel', 'Austin', '78701'],
+    ['Riley Chen', 'Denver', '80202'],
+    ['Casey Brooks', 'Chicago', '60601'],
+    ['Taylor Nguyen', 'Boston', '02108'],
+    ['Quinn Rivera', 'Phoenix', '85004'],
+    ['Jamie Wilson', 'Atlanta', '30303'],
+    ['Cameron Davis', 'Miami', '33101'],
+    ['Reese Thompson', 'San Diego', '92101']
+  ];
+  const statuses = ['Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'];
+  const userCollection = db.collection('users');
+  const orderCollection = db.collection('orders');
+  let nextUserId = await nextNumericId(userCollection);
+  let nextOrderId = await nextNumericId(orderCollection);
+
+  for (let index = 0; index < customerProfiles.length; index += 1) {
+    const [fullName, city, postalCode] = customerProfiles[index];
+    const email = `demo.customer.${String(index + 1).padStart(2, '0')}@retailshop.com`;
+    let customer = await userCollection.findOne({ EMAIL: email });
+    if (!customer) {
+      customer = {
+        _id: nextUserId++,
+        FULL_NAME: fullName,
+        EMAIL: email,
+        PASSWORD_HASH: 'demo123',
+        PHONE: `+1-555-010${String(index).padStart(1, '0')}`,
+        ADDRESS: `${100 + index} Market Street`,
+        CITY: city,
+        POSTAL_CODE: postalCode,
+        ROLE: 'CUSTOMER',
+        CREATED_AT: new Date()
+      };
+      await userCollection.insertOne(customer);
+    }
+
+    const product = availableProducts[index % availableProducts.length];
+    const quantity = (index % 3) + 1;
+    const orderDate = new Date(Date.now() - index * 86400000);
+    const orderNumber = `DEMO-ORDER-${String(index + 1).padStart(3, '0')}`;
+    await orderCollection.updateOne(
+      { ORDER_NUMBER: orderNumber },
+      {
+        $setOnInsert: {
+          _id: nextOrderId++,
+          ORDER_NUMBER: orderNumber,
+          USER_ID: Number(customer._id),
+          CUSTOMER_NAME: customer.FULL_NAME,
+          EMAIL: customer.EMAIL,
+          SHIPPING_ADDRESS: customer.ADDRESS,
+          CITY: customer.CITY,
+          POSTAL_CODE: customer.POSTAL_CODE,
+          PHONE: customer.PHONE,
+          TOTAL_AMOUNT: Math.round(product.PRICE * quantity * 108) / 100,
+          PAYMENT_METHOD: ['Credit Card', 'Debit Card', 'PayPal'][index % 3],
+          PAYMENT_STATUS: 'Paid',
+          ORDER_STATUS: statuses[index % statuses.length],
+          ESTIMATED_DELIVERY: new Date(orderDate.getTime() + 2 * 86400000),
+          ORDER_DATE: orderDate,
+          ITEMS: [{
+            PRODUCT_ID: product._id,
+            PRODUCT_TITLE: product.TITLE,
+            PRICE: product.PRICE,
+            QUANTITY: quantity,
+            IMAGE_URL: product.MAIN_IMAGE
+          }]
+        }
+      },
+      { upsert: true }
+    );
+  }
+
+  console.log(`✅ Ensured ${customerProfiles.length} demo orders across ${customerProfiles.length} customer accounts`);
+}
+
 async function seed() {
   const client = new MongoClient(mongoUri);
   try {
@@ -81,23 +171,34 @@ async function seed() {
     const db = client.db(mongoDbName);
     console.log(`✅ Connected to MongoDB Atlas (database: ${mongoDbName})`);
 
-    await upsertAll(db.collection('categories'), categories);
-    console.log(`✅ Seeded ${categories.length} categories`);
+    const ordersOnly = process.argv.includes('--orders-only');
+    let availableProducts = products;
 
-    await upsertAll(db.collection('products'), products);
-    console.log(`✅ Seeded ${products.length} products`);
+    if (ordersOnly) {
+      availableProducts = await db.collection('products').find({}).sort({ _id: 1 }).toArray();
+    } else {
+      await upsertAll(db.collection('categories'), categories);
+      console.log(`✅ Seeded ${categories.length} categories`);
 
-    await upsertAll(db.collection('product_reviews'), reviews);
-    console.log(`✅ Seeded ${reviews.length} reviews`);
+      await upsertAll(db.collection('products'), products);
+      console.log(`✅ Seeded ${products.length} products`);
 
-    await upsertAll(db.collection('users'), users);
-    console.log(`✅ Seeded ${users.length} users`);
+      await upsertAll(db.collection('product_reviews'), reviews);
+      console.log(`✅ Seeded ${reviews.length} reviews`);
+
+      await upsertAll(db.collection('users'), users);
+      console.log(`✅ Seeded ${users.length} users`);
+    }
+
+    await seedDemoOrders(db, availableProducts);
 
     // Create indexes
-    await db.collection('users').createIndex({ EMAIL: 1 }, { unique: true });
-    await db.collection('categories').createIndex({ SLUG: 1 }, { unique: true });
-    await db.collection('orders').createIndex({ ORDER_NUMBER: 1 }, { sparse: true });
-    console.log('✅ Indexes created');
+    if (!ordersOnly) {
+      await db.collection('users').createIndex({ EMAIL: 1 }, { unique: true });
+      await db.collection('categories').createIndex({ SLUG: 1 }, { unique: true });
+      await db.collection('orders').createIndex({ ORDER_NUMBER: 1 }, { sparse: true });
+      console.log('✅ Indexes created');
+    }
 
     console.log('');
     console.log('🎉 Seed complete! RetailShop MongoDB Atlas is ready.');

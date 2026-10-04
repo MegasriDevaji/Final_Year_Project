@@ -17,28 +17,14 @@
 </head>
 <body>
 
-  <!-- TOP ANNOUNCEMENT BAR -->
-  <div class="top-bar">
-    <span><i class="fa-solid fa-bolt"></i> <strong>RETAILSHOP GREAT GLOBAL SHOPPING FESTIVAL</strong> — Up to 70% Off Electronics, Laptops &amp; Home Essentials!</span>
-  </div>
-
   <!-- MAIN NAVIGATION HEADER -->
   <header class="amz-header">
     <div class="header-main">
       <!-- RetailShop Logo -->
       <a href="#" class="brand-logo" onclick="app.resetFilters(); return false;">
         <span class="logo-text">Retail<span class="logo-dot">Shop</span></span>
-        <span class="logo-prime"><i class="fa-solid fa-check"></i>prime</span>
+        <span class="logo-prime">SHOP SMARTER</span>
       </a>
-
-      <!-- Location Selector -->
-      <div class="header-nav-item nav-location" onclick="app.showToast('Deliver to location updated to Seattle 98101')">
-        <i class="fa-solid fa-location-dot loc-icon"></i>
-        <div class="nav-text-container">
-          <span class="nav-text-top">Deliver to</span>
-          <span class="nav-text-bottom">Seattle 98101</span>
-        </div>
-      </div>
 
       <!-- Search Bar -->
       <div class="header-search">
@@ -51,13 +37,6 @@
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
         <div class="search-autosuggest-popup" id="searchAutosuggestPopup"></div>
-      </div>
-
-      <!-- Language & Currency -->
-      <div class="header-nav-item nav-lang" onclick="app.showToast('Language: EN (US Dollar)')">
-        <span class="flag-icon">🇺🇸</span>
-        <span class="nav-text-bottom">EN</span>
-        <i class="fa-solid fa-caret-down caret-icon"></i>
       </div>
 
       <!-- Account & Sign In Dropdown -->
@@ -101,8 +80,8 @@
         <i class="fa-solid fa-bars"></i> All
       </button>
       <div class="sub-nav-links" id="subNavLinks">
-        <a href="#" class="sub-link active" onclick="app.filterBySpecial('all'); return false;">Today's Deals <i class="fa-solid fa-fire deal-fire-icon"></i></a>
-        <a href="#" class="sub-link" onclick="app.filterBySpecial('prime'); return false;">Prime</a>
+        <a href="#" class="sub-link active" onclick="app.filterBySpecial('deals'); return false;">Today's Deals <i class="fa-solid fa-fire deal-fire-icon"></i></a>
+        <a href="#" class="sub-link" onclick="app.filterBySpecial('delivery'); return false;">Free Delivery</a>
         <a href="#" class="sub-link" onclick="app.filterByCategory('electronics'); return false;">Electronics</a>
         <a href="#" class="sub-link" onclick="app.filterByCategory('computers'); return false;">Computers & Gaming</a>
         <a href="#" class="sub-link" onclick="app.filterByCategory('home-kitchen'); return false;">Home & Kitchen</a>
@@ -113,7 +92,7 @@
         <a href="#" class="sub-link" onclick="app.filterByCategory('sports'); return false;">Sports</a>
       </div>
       <div class="sub-nav-right">
-        <span class="prime-promo"><i class="fa-solid fa-truck-fast"></i> FREE 1-Day Delivery with Prime</span>
+        <span class="prime-promo"><i class="fa-solid fa-truck-fast"></i> FREE One-Day Delivery on eligible items</span>
       </div>
     </nav>
   </header>
@@ -129,7 +108,7 @@
     <div class="side-drawer-content">
       <div class="side-section-title">Trending & Deals</div>
       <a href="#" class="side-link" onclick="app.filterBySpecial('deals'); app.toggleSideMenu(); return false;">Today's Deals</a>
-      <a href="#" class="side-link" onclick="app.filterBySpecial('prime'); app.toggleSideMenu(); return false;">Prime Video & Products</a>
+      <a href="#" class="side-link" onclick="app.filterBySpecial('delivery'); app.toggleSideMenu(); return false;">Free Delivery Eligible</a>
       
       <div class="side-divider"></div>
       <div class="side-section-title">Shop By Department</div>
@@ -140,7 +119,7 @@
       <div class="side-divider"></div>
       <div class="side-section-title">Help &amp; Settings</div>
       <a href="#" class="side-link" onclick="app.toggleOrdersModal(); app.toggleSideMenu(); return false;"><i class="fa-solid fa-box"></i> Your Orders</a>
-      <a href="#" class="side-link" onclick="app.showToast('Customer Service — RetailShop Support'); return false;"><i class="fa-solid fa-headset"></i> Customer Service</a>
+          <a href="mailto:support@retailshop.com" class="side-link"><i class="fa-solid fa-headset"></i> Customer Service</a>
     </div>
   </aside>
 
@@ -150,15 +129,15 @@
       <div class="slide slide-active" style="background-image: linear-gradient(to bottom, rgba(19, 25, 33, 0.4), rgba(234, 237, 237, 1)), url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1600&q=80');">
         <div class="slide-content">
           <span class="hero-badge">OFFICIAL RETAILSHOP FESTIVAL</span>
-          <h1 class="hero-title">Upgrade Your Tech with Prime Savings</h1>
-          <p class="hero-subtitle">Up to 40% Off Laptops, Headphones, 4K TVs &amp; Smartwatches — Free 1-Day Delivery on Prime items.</p>
+          <h1 class="hero-title">Upgrade Your Tech with RetailShop Savings</h1>
+          <p class="hero-subtitle">Up to 40% off laptops, headphones, 4K TVs, and smartwatches, with free one-day delivery on eligible items.</p>
           <button class="hero-cta-btn" onclick="app.filterByCategory('electronics')">Explore Electronics Deals <i class="fa-solid fa-arrow-right"></i></button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- AMAZON FEATURED MULTI-CARDS (GRID SECTION) -->
+  <!-- FEATURED DEPARTMENTS -->
   <section class="amz-container feature-cards-grid">
     <div class="feature-card">
       <h2 class="card-title">Electronics & Mobiles</h2>
@@ -217,11 +196,11 @@
           <img src="https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&w=300&q=80" alt="Roomba">
           <span>Robot Vacuums</span>
         </div>
-        <div class="thumb-item" onclick="app.filterByCategory('home-kitchen')">
+        <div class="thumb-item" onclick="app.filterByCategory('sports')">
           <img src="https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=300&q=80" alt="Fitness">
           <span>Fitness Gear</span>
         </div>
-        <div class="thumb-item" onclick="app.filterByCategory('home-kitchen')">
+        <div class="thumb-item" onclick="app.filterByCategory('toys')">
           <img src="https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?auto=format&fit=crop&w=300&q=80" alt="Toys">
           <span>Toys & Games</span>
         </div>
@@ -230,14 +209,14 @@
     </div>
 
     <div class="feature-card feature-card-prime">
-      <h2 class="card-title">Welcome to RetailShop Prime</h2>
-      <p class="card-desc">Fast, FREE Delivery on 100M+ items, exclusive deals, Prime Video & Music included.</p>
+      <h2 class="card-title">RetailShop Delivery</h2>
+      <p class="card-desc">Find eligible products with free one-day delivery and track orders from your account.</p>
       <div class="prime-perks-box">
         <div class="perk"><i class="fa-solid fa-truck-fast"></i> Free 1-Day Shipping</div>
-        <div class="perk"><i class="fa-solid fa-film"></i> Award-winning Movies</div>
-        <div class="perk"><i class="fa-solid fa-tags"></i> Exclusive Member Savings</div>
+        <div class="perk"><i class="fa-solid fa-box"></i> Order Tracking</div>
+        <div class="perk"><i class="fa-solid fa-tags"></i> Current Deals</div>
       </div>
-      <button class="prime-join-btn" onclick="app.filterBySpecial('prime')">Explore Prime Deals</button>
+      <button class="prime-join-btn" onclick="app.filterBySpecial('delivery')">Browse Eligible Products</button>
     </div>
   </section>
 
@@ -258,8 +237,8 @@
 
         <div class="filter-actions">
           <label class="toggle-checkbox">
-            <input type="checkbox" id="primeOnlyToggle" onchange="app.applyFilters()">
-            <span class="toggle-label"><i class="fa-solid fa-check text-prime"></i> <strong>prime</strong> Only</span>
+            <input type="checkbox" id="deliveryOnlyToggle" onchange="app.applyFilters()">
+            <span class="toggle-label"><i class="fa-solid fa-truck-fast text-prime"></i> Free One-Day Delivery</span>
           </label>
 
           <label class="toggle-checkbox">
@@ -294,33 +273,25 @@
     
     <div class="footer-links-container">
       <div class="footer-col">
-        <h4>Get to Know Us</h4>
-        <a href="#" onclick="app.showToast('Careers Portal'); return false;">Careers</a>
-        <a href="#" onclick="app.showToast('RetailShop Tech Blog'); return false;">Blog</a>
-        <a href="#" onclick="app.showToast('About RetailShop'); return false;">About RetailShop</a>
-        <a href="#" onclick="app.showToast('Investor Relations'); return false;">Investor Relations</a>
-        <a href="#" onclick="app.showToast('RetailShop Smart Devices'); return false;">RetailShop Devices</a>
+        <h4>Shop Departments</h4>
+        <a href="#" onclick="app.filterByCategory('electronics'); return false;">Electronics</a>
+        <a href="#" onclick="app.filterByCategory('computers'); return false;">Computers &amp; Gaming</a>
+        <a href="#" onclick="app.filterByCategory('home-kitchen'); return false;">Home &amp; Kitchen</a>
+        <a href="#" onclick="app.filterByCategory('fashion'); return false;">Fashion</a>
       </div>
       <div class="footer-col">
-        <h4>Make Money with Us</h4>
-        <a href="#" onclick="app.showToast('Sell products on RetailShop'); return false;">Sell products on RetailShop</a>
-        <a href="#" onclick="app.showToast('Sell on RetailShop Business'); return false;">Sell on RetailShop Business</a>
-        <a href="#" onclick="app.showToast('Affiliate Program'); return false;">Become an Affiliate</a>
-        <a href="#" onclick="app.showToast('Ad Manager Portal'); return false;">Advertise Your Products</a>
-        <a href="#" onclick="app.showToast('KDP Publishing Portal'); return false;">Self-Publish with Us</a>
-      </div>
-      <div class="footer-col">
-        <h4>RetailShop Payment Products</h4>
-        <a href="#" onclick="app.showToast('RetailShop Card Application'); return false;">RetailShop Business Card</a>
-        <a href="#" onclick="app.showToast('Rewards & Points'); return false;">Shop with Points</a>
-        <a href="#" onclick="app.showToast('Gift Card Balance Reload'); return false;">Reload Your Balance</a>
-        <a href="#" onclick="app.showToast('Currency Converter'); return false;">RetailShop Currency Converter</a>
+        <h4>Your Account</h4>
+        <a href="#" onclick="app.handleAccountClick(); return false;">Account &amp; Orders</a>
+        <a href="#" onclick="app.toggleWishlistDrawer(); return false;">Wishlist</a>
+        <a href="#" onclick="app.toggleCartDrawer(); return false;">Shopping Cart</a>
       </div>
       <div class="footer-col">
         <h4>Customer Support</h4>
-        <a href="#" onclick="app.showToast('Help Center — Browse FAQs'); return false;">Help Center</a>
-        <a href="#" onclick="app.showToast('Track your package'); return false;">Track Your Package</a>
-        <a href="#" onclick="app.showToast('Returns &amp; Refunds Policy'); return false;">Returns &amp; Refunds</a>
+        <a href="mailto:support@retailshop.com">Email RetailShop Support</a>
+        <a href="#" onclick="app.openOrdersModal(); return false;">Track an Order</a>
+      </div>
+      <div class="footer-col">
+        <h4>Store Management</h4>
         <a href="/admin.html">Admin Portal</a>
       </div>
     </div>
@@ -377,8 +348,8 @@
       <button class="modal-close-btn" onclick="app.closeCheckoutModal()"><i class="fa-solid fa-xmark"></i></button>
       <div class="checkout-header">
         <span class="logo-text text-dark">Retail<span class="logo-dot">Shop</span></span>
-        <h2>Secure Checkout</h2>
-        <span class="ssl-secure"><i class="fa-solid fa-lock"></i> 256-Bit SSL Encrypted</span>
+        <h2>Checkout</h2>
+        <span class="ssl-secure"><i class="fa-solid fa-lock"></i> Order Checkout</span>
       </div>
 
       <form id="checkoutForm" onsubmit="app.handleCheckoutSubmit(event)">
@@ -390,25 +361,25 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>Full Name</label>
-                  <input type="text" id="chkName" required value="John Doe" placeholder="John Doe">
+                  <input type="text" id="chkName" required placeholder="Full name">
                 </div>
                 <div class="form-group">
                   <label>Phone Number</label>
-                  <input type="tel" id="chkPhone" required value="+1 (555) 019-2834" placeholder="+1 (555) 000-0000">
+                  <input type="tel" id="chkPhone" required placeholder="Phone number">
                 </div>
               </div>
               <div class="form-group">
                 <label>Street Address</label>
-                <input type="text" id="chkAddress" required value="742 Evergreen Terrace" placeholder="123 Main St">
+                <input type="text" id="chkAddress" required placeholder="Street address">
               </div>
               <div class="form-row">
                 <div class="form-group">
                   <label>City</label>
-                  <input type="text" id="chkCity" required value="Seattle" placeholder="Seattle">
+                  <input type="text" id="chkCity" required placeholder="City">
                 </div>
                 <div class="form-group">
                   <label>Zip / Postal Code</label>
-                  <input type="text" id="chkZip" required value="98101" placeholder="98101">
+                  <input type="text" id="chkZip" required placeholder="Postal code">
                 </div>
               </div>
             </div>
@@ -419,10 +390,6 @@
                 <label class="payment-radio">
                   <input type="radio" name="payMethod" value="Credit Card" checked>
                   <span><i class="fa-solid fa-credit-card"></i> Credit or Debit Card (Visa, Mastercard, Amex)</span>
-                </label>
-                <label class="payment-radio">
-                  <input type="radio" name="payMethod" value="RetailShop Pay">
-                  <span><i class="fa-solid fa-wallet"></i> RetailShop Pay Balance / Gift Card</span>
                 </label>
                 <label class="payment-radio">
                   <input type="radio" name="payMethod" value="Cash on Delivery">
@@ -468,7 +435,10 @@
       <button class="modal-close-btn" onclick="app.closeOrdersModal()"><i class="fa-solid fa-xmark"></i></button>
       <div class="orders-modal-header">
         <h2><i class="fa-solid fa-box-open"></i> Your RetailShop Orders</h2>
-        <button class="refresh-btn" onclick="app.loadOrders()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+        <div style="display:flex;gap:8px;">
+          <button class="refresh-btn" onclick="app.loadOrders()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+          <button class="refresh-btn" onclick="app.logout()"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</button>
+        </div>
       </div>
 
       <div class="orders-list" id="ordersListContent">
@@ -619,7 +589,7 @@
         <div class="form-row flex-center">
           <label class="toggle-checkbox">
             <input type="checkbox" id="editIsPrime">
-            <span>Prime Eligible</span>
+            <span>Free One-Day Delivery</span>
           </label>
           <label class="toggle-checkbox">
             <input type="checkbox" id="editIsDeal">

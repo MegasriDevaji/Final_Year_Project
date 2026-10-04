@@ -12,10 +12,11 @@ class RetailShopApp {
     this.cart = this.loadCartFromStorage();
     this.wishlist = this.loadWishlistFromStorage();
     this.currentUser = this.loadUserFromStorage();
+    this.authToken = localStorage.getItem('amz_auth_token') || '';
     this.currentCategory = '';
     this.searchQuery = '';
     this.dealFilter = false;
-    this.primeFilter = false;
+    this.deliveryFilter = false;
 
     this.init();
   }
@@ -25,9 +26,7 @@ class RetailShopApp {
     this.updateCartBadge();
     this.updateWishlistBadge();
     this.updateUserNavUI();
-    await this.checkDatabaseStatus();
-    await this.loadCategories();
-    await this.loadProducts();
+    await Promise.all([this.checkServiceStatus(), this.loadCategories(), this.loadProducts()]);
     
     // Close autosuggest when clicking outside
     document.addEventListener('click', (e) => {
@@ -38,8 +37,8 @@ class RetailShopApp {
     });
   }
 
-  /* ================= 1. DATABASE HEALTH & METRICS ================= */
-  async checkDatabaseStatus() {
+  /* ================= 1. SERVICE HEALTH & METRICS ================= */
+  async checkServiceStatus() {
     try {
       const res = await fetch(`${API_BASE}/health`);
       const data = await res.json();
@@ -48,7 +47,7 @@ class RetailShopApp {
       const pill = document.getElementById('dbStatusPill');
 
       if (data.status === 'ONLINE') {
-        if (pillText) pillText.textContent = `${data.database} (${data.openMode})`;
+        if (pillText) pillText.textContent = 'RetailShop services online';
         if (pill) pill.style.background = 'rgba(0, 230, 118, 0.18)';
         this.metrics = data.metrics || {};
         this.updateAdminMetricsUI();
@@ -57,7 +56,7 @@ class RetailShopApp {
         if (pill) pill.style.background = 'rgba(255, 23, 68, 0.18)';
       }
     } catch (err) {
-      console.error('Database connection error:', err);
+      console.error('RetailShop service connection error:', err);
       const pillText = document.getElementById('dbStateText');
       if (pillText) pillText.textContent = 'Disconnected';
     }
@@ -107,9 +106,9 @@ class RetailShopApp {
 
       if (categoryChips) {
         categoryChips.innerHTML = `
-          <button class="chip-btn ${this.currentCategory === '' ? 'active' : ''}" onclick="app.filterByCategory('')">All Departments</button>
+          <button class="chip-btn ${this.currentCategory === '' ? 'active' : ''}" data-category="" onclick="app.filterByCategory('')">All Departments</button>
         ` + this.categories.map(c => 
-          `<button class="chip-btn ${this.currentCategory === c.SLUG ? 'active' : ''}" onclick="app.filterByCategory('${c.SLUG}')">${c.NAME}</button>`
+          `<button class="chip-btn ${this.currentCategory === c.SLUG ? 'active' : ''}" data-category="${c.SLUG}" onclick="app.filterByCategory('${c.SLUG}')">${c.NAME}</button>`
         ).join('');
       }
     } catch (err) {
@@ -136,7 +135,7 @@ class RetailShopApp {
       if (this.currentCategory) queryParams.append('category', this.currentCategory);
       if (this.searchQuery) queryParams.append('search', this.searchQuery);
       if (this.dealFilter) queryParams.append('deal', '1');
-      if (this.primeFilter) queryParams.append('prime', '1');
+      if (this.deliveryFilter) queryParams.append('delivery', '1');
 
       const sortVal = document.getElementById('sortSelect')?.value;
       if (sortVal) queryParams.append('sort', sortVal);
@@ -212,7 +211,7 @@ class RetailShopApp {
           ${p.IS_PRIME ? `
             <div class="prime-row">
               <i class="fa-solid fa-check text-prime"></i>
-              <span><strong>prime</strong> FREE One-Day</span>
+              <span>RetailShop FREE One-Day Delivery</span>
             </div>
           ` : ''}
 
@@ -255,7 +254,7 @@ class RetailShopApp {
     const categoryChips = document.getElementById('categoryChips');
     if (categoryChips) {
       categoryChips.querySelectorAll('.chip-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(slug) || (slug === '' && btn.textContent === 'All Departments'));
+        btn.classList.toggle('active', btn.dataset.category === slug);
       });
     }
 
@@ -269,18 +268,24 @@ class RetailShopApp {
   }
 
   filterBySpecial(type) {
-    if (type === 'deals') {
-      this.dealFilter = true;
-      const t = document.getElementById('dealsOnlyToggle');
-      if (t) t.checked = true;
-    } else if (type === 'prime') {
-      this.primeFilter = true;
-      const t = document.getElementById('primeOnlyToggle');
-      if (t) t.checked = true;
-    } else {
+    if (type !== 'deals' && type !== 'delivery') {
       this.resetFilters();
       return;
     }
+    this.currentCategory = '';
+    this.searchQuery = '';
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+    const categorySelect = document.getElementById('searchCategorySelect');
+    if (categorySelect) categorySelect.value = '';
+    this.dealFilter = type === 'deals';
+    this.deliveryFilter = type === 'delivery';
+    const deliveryToggle = document.getElementById('deliveryOnlyToggle');
+    if (deliveryToggle) deliveryToggle.checked = this.deliveryFilter;
+    const dealsToggle = document.getElementById('dealsOnlyToggle');
+    if (dealsToggle) dealsToggle.checked = this.dealFilter;
+    const heading = document.getElementById('catalogHeading');
+    if (heading) heading.textContent = type === 'deals' ? "Today's Deals" : 'Free One-Day Delivery';
     this.loadProducts();
   }
 
@@ -336,7 +341,7 @@ class RetailShopApp {
   }
 
   applyFilters() {
-    this.primeFilter = document.getElementById('primeOnlyToggle')?.checked || false;
+    this.deliveryFilter = document.getElementById('deliveryOnlyToggle')?.checked || false;
     this.dealFilter = document.getElementById('dealsOnlyToggle')?.checked || false;
     this.loadProducts();
   }
@@ -345,12 +350,12 @@ class RetailShopApp {
     this.currentCategory = '';
     this.searchQuery = '';
     this.dealFilter = false;
-    this.primeFilter = false;
+    this.deliveryFilter = false;
     
     const input = document.getElementById('searchInput');
     if (input) input.value = '';
 
-    const pT = document.getElementById('primeOnlyToggle');
+    const pT = document.getElementById('deliveryOnlyToggle');
     if (pT) pT.checked = false;
 
     const dT = document.getElementById('dealsOnlyToggle');
@@ -388,8 +393,8 @@ class RetailShopApp {
           </div>
         </div>
 
-        <div class="detail-info">
-          <a href="#" class="detail-brand" onclick="app.filterByCategory('${product.CATEGORY_SLUG}')">Brand: ${product.BRAND || 'RetailShop Choice'}</a>
+          <div class="detail-info">
+            <a href="#" class="detail-brand" onclick="app.filterByCategory('${product.CATEGORY_SLUG}'); return false;">Brand: ${product.BRAND || 'RetailShop Choice'}</a>
           <h2>${product.TITLE}</h2>
           
           <div class="rating-row">
@@ -696,6 +701,15 @@ class RetailShopApp {
       this.showToast('Your cart is empty.');
       return;
     }
+    if (this.currentUser && this.currentUser.ROLE !== 'CUSTOMER') {
+      this.showToast('Only customer accounts can place orders.');
+      return;
+    }
+    if (!this.currentUser || !this.authToken) {
+      this.showToast('Please sign in with a customer account to place an order.');
+      this.openAuthModal();
+      return;
+    }
     this.toggleCartDrawer(false);
     
     const subtotal = this.cart.reduce((sum, item) => sum + (item.PRICE * item.QUANTITY), 0);
@@ -737,7 +751,10 @@ class RetailShopApp {
     try {
       const res = await fetch(`${API_BASE}/checkout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.authToken}`
+        },
         body: JSON.stringify({
           customerName: name,
           phone,
@@ -769,9 +786,23 @@ class RetailShopApp {
   }
 
   async openOrdersModal() {
+    if (!this.currentUser || !this.authToken) {
+      this.showToast('Sign in to view your orders.');
+      this.openAuthModal();
+      return;
+    }
     const overlay = document.getElementById('ordersModalOverlay');
     if (overlay) overlay.classList.add('open');
     await this.loadOrders();
+  }
+
+  toggleOrdersModal() {
+    const overlay = document.getElementById('ordersModalOverlay');
+    if (overlay?.classList.contains('open')) {
+      this.closeOrdersModal();
+    } else {
+      this.openOrdersModal();
+    }
   }
 
   closeOrdersModal() {
@@ -780,6 +811,9 @@ class RetailShopApp {
   }
 
   renderOrderStepper(status) {
+    if (status === 'Cancelled') {
+      return '<p class="order-cancelled">This order was cancelled.</p>';
+    }
     const steps = ['Processing', 'Shipped', 'Out for Delivery', 'Delivered'];
     const currentIdx = steps.indexOf(status) > -1 ? steps.indexOf(status) : 0;
 
@@ -811,7 +845,10 @@ class RetailShopApp {
     listEl.innerHTML = `<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading your orders...</div>`;
 
     try {
-      const res = await fetch(`${API_BASE}/orders`);
+      const res = await fetch(`${API_BASE}/orders`, {
+        headers: { Authorization: `Bearer ${this.authToken}` }
+      });
+      if (!res.ok) throw new Error('Unable to load orders. Please sign in again.');
       const orders = await res.json();
 
       if (orders.length === 0) {
@@ -840,7 +877,7 @@ class RetailShopApp {
           <div class="order-card-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <div style="color: #007600; font-weight: 700;">
-                <i class="fa-solid fa-truck"></i> Status: ${o.ORDER_STATUS} — ${o.PAYMENT_METHOD} Paid
+                <i class="fa-solid fa-truck"></i> Status: ${o.ORDER_STATUS} — Payment: ${o.PAYMENT_STATUS || 'Pending'}
               </div>
               ${isAdmin ? `
                 <div style="display: flex; align-items: center; gap: 6px;">
@@ -874,6 +911,7 @@ class RetailShopApp {
       `).join('');
     } catch (err) {
       console.error('Failed to load orders:', err);
+      listEl.innerHTML = `<p style="text-align: center; color: #666; padding: 20px;">Unable to load your orders. Please sign in again.</p>`;
     }
   }
 
@@ -881,7 +919,10 @@ class RetailShopApp {
     try {
       const res = await fetch(`${API_BASE}/admin/orders/${orderId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.authToken}`
+        },
         body: JSON.stringify({ status })
       });
       const data = await res.json();
@@ -906,12 +947,18 @@ class RetailShopApp {
     }
   }
 
-  saveUserToStorage(user) {
+  saveUserToStorage(user, authToken = null) {
     this.currentUser = user;
     if (user) {
       localStorage.setItem('amz_user', JSON.stringify(user));
     } else {
       localStorage.removeItem('amz_user');
+      this.authToken = '';
+      localStorage.removeItem('amz_auth_token');
+    }
+    if (authToken) {
+      this.authToken = authToken;
+      localStorage.setItem('amz_auth_token', authToken);
     }
     this.updateUserNavUI();
     this.renderProductsGrid();
@@ -1000,7 +1047,7 @@ class RetailShopApp {
       });
       const data = await res.json();
       if (data.success) {
-        this.saveUserToStorage(data.user);
+        this.saveUserToStorage(data.user, data.authToken);
         this.closeAuthModal();
         this.showToast(`Welcome back, ${data.user.FULL_NAME}!`);
       } else {
@@ -1028,7 +1075,7 @@ class RetailShopApp {
       });
       const data = await res.json();
       if (data.success) {
-        this.saveUserToStorage(data.user);
+        this.saveUserToStorage(data.user, data.authToken);
         this.closeAuthModal();
         this.showToast(`Account created successfully! Welcome, ${data.user.FULL_NAME}`);
       } else {
@@ -1040,7 +1087,14 @@ class RetailShopApp {
   }
 
   logout() {
+    if (this.authToken) {
+      fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.authToken}` }
+      }).catch(err => console.error('Logout error:', err));
+    }
     this.saveUserToStorage(null);
+    this.closeOrdersModal();
     this.showToast('Logged out successfully.');
   }
 
@@ -1093,7 +1147,10 @@ class RetailShopApp {
     try {
       const res = await fetch(`${API_BASE}/admin/products/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.authToken}`
+        },
         body: JSON.stringify({
           title, brand, price, listPrice, categoryId, stockQty, badgeText, description, isPrime, isDeal
         })
@@ -1116,13 +1173,14 @@ class RetailShopApp {
 
     try {
       const res = await fetch(`${API_BASE}/admin/products/${productId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${this.authToken}` }
       });
       const data = await res.json();
       if (data.success) {
         this.showToast('Product deleted successfully.');
         await this.loadProducts();
-        await this.checkDatabaseStatus();
+        await this.checkServiceStatus();
       } else {
         this.showToast('Error: ' + data.error);
       }
@@ -1137,7 +1195,7 @@ class RetailShopApp {
     if (!overlay) return;
     overlay.classList.toggle('open');
     if (overlay.classList.contains('open')) {
-      this.checkDatabaseStatus();
+      this.checkServiceStatus();
     }
   }
 
@@ -1161,7 +1219,10 @@ class RetailShopApp {
     try {
       const res = await fetch(`${API_BASE}/admin/products`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.authToken}`
+        },
         body: JSON.stringify({
           title, brand, price, listPrice, categoryId, mainImage, description, isPrime, isDeal
         })
@@ -1172,7 +1233,7 @@ class RetailShopApp {
         this.showToast('Product added to catalog!');
         this.closeAdminModal();
         await this.loadProducts();
-        await this.checkDatabaseStatus();
+        await this.checkServiceStatus();
       } else {
         this.showToast('Error: ' + data.error);
       }
